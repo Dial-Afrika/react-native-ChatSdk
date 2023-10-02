@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList } from 'react-native';
 import io from 'socket.io-client';
 
 const chatBaseUrl = 'https://chatdesk-prod.dialafrika.com/mobilechat/';
@@ -7,6 +7,7 @@ const chatBaseUrl = 'https://chatdesk-prod.dialafrika.com/mobilechat/';
 const ChatScreen = ({ clientId, socketId }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
+  const [ticketId, setTicketId] = useState(null); // State for storing ticketId
 
   useEffect(() => {
     const socket = io(`${chatBaseUrl}${socketId}/process`);
@@ -18,16 +19,22 @@ const ChatScreen = ({ clientId, socketId }) => {
     socket.on('message_from_agent', (data) => {
       // Handle incoming messages from the agent
       const newMessage = {
-        _id: data.messageId, // Use a unique ID for the message
+        _id: data.messageId,
         text: data.message,
-        createdAt: new Date(data.timestamp), // Use the timestamp from the server
+        createdAt: new Date(data.timestamp),
         user: {
-          _id: data.senderId, // Use the sender's ID from the server
-          name: data.senderName, // Use the sender's name from the server
+          _id: data.senderId,
+          name: data.senderName,
         },
       };
 
       setMessages((prevMessages) => [...prevMessages, newMessage]);
+    });
+
+    // Initialize a new chat session and capture the ticketId
+    socket.emit('initiate_chat', (data) => {
+      const receivedTicketId = data.ticketId;
+      setTicketId(receivedTicketId);
     });
 
     return () => {
@@ -36,10 +43,34 @@ const ChatScreen = ({ clientId, socketId }) => {
     };
   }, [socketId]);
 
-  const sendMessage = () => {
-    // Send the message to the server
-    // Use the clientId, socketId, and message state
-    // Send a POST request to the server with this information
+  const sendMessage = async () => {
+    try {
+      const messagePayload = {
+        route: 'LIVE_CHAT',
+        payload: {
+          clientMessage: message,
+          clientId: clientId,
+          ticketId: ticketId, // Use the captured ticketId
+          socketId: socketId,
+        },
+      };
+
+      const response = await fetch(`${chatBaseUrl}${socketId}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messagePayload),
+      });
+
+      if (response.ok) {
+        console.log('Message sent successfully');
+      } else {
+        console.error('Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
   };
 
   return (
