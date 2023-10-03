@@ -89,35 +89,35 @@ export default function App() {
   }
 
   return (
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen name="SplashScreen" component={SplashScreen} />
-          <Stack.Screen name="UserInfoForm">
-            {props => (
-              <UserInfoForm
-                {...props}
-                navigation={props.navigation} // Pass the navigation prop
-                orgId={orgId}
-                socketId={socketId}
-                onUserDataSaved={() => {
-                  setUserDataLoaded(true);
-                }}
-              />
-            )}
-          </Stack.Screen>
-          <Stack.Screen name="ChatScreen">
-            {props => (
-              <ChatScreen {...props} clientId={clientId} socketId={socketId} />
-            )}
-          </Stack.Screen>
-          <Stack.Screen
-            name="TicketHistoryScreen"
-            component={TicketHistoryScreen}
-            initialParams={{ orgId: orgId, clientId: clientId }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="UserInfoForm">
+        <Stack.Screen name="SplashScreen" component={SplashScreen} />
+        <Stack.Screen name="UserInfoForm">
+          {props => (
+            <UserInfoForm
+              {...props}
+              navigation={props.navigation} // Pass the navigation prop
+              orgId={orgId}
+              socketId={socketId}
+              onUserDataSaved={() => {
+                setUserDataLoaded(true);
+              }}
+            />
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="ChatScreen">
+          {props => (
+            <ChatScreen {...props} clientId={clientId} socketId={socketId} />
+          )}
+        </Stack.Screen>
+        <Stack.Screen
+          name="TicketHistoryScreen"
+          component={TicketHistoryScreen}
+          initialParams={{ orgId: orgId, clientId: clientId }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
+  
 }
 

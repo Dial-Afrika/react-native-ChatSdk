@@ -35,6 +35,7 @@ const ChatScreen = ({ clientId, socketId }) => {
     socket.emit('initiate_chat', (data) => {
       const receivedTicketId = data.ticketId;
       setTicketId(receivedTicketId);
+      console.log('Ticket ID:', receivedTicketId); // Log the captured ticketId
     });
 
     return () => {
@@ -45,16 +46,20 @@ const ChatScreen = ({ clientId, socketId }) => {
 
   const sendMessage = async () => {
     try {
+      // Check if clientId is available
+      if (!clientId) {
+        console.error('Client ID is not available');
+        return;
+      }
+  
       const messagePayload = {
-        route: 'LIVE_CHAT',
-        payload: {
-          clientMessage: message,
-          clientId: clientId,
-          ticketId: ticketId, // Use the captured ticketId
-          socketId: socketId,
-        },
+        clientId: clientId,
+        ticketMessage: message,
+        socketId: socketId,
       };
-
+  
+      console.log('Sending message payload:', messagePayload); // Log the message payload
+  
       const response = await fetch(`${chatBaseUrl}${socketId}/sendMessage`, {
         method: 'POST',
         headers: {
@@ -62,9 +67,10 @@ const ChatScreen = ({ clientId, socketId }) => {
         },
         body: JSON.stringify(messagePayload),
       });
-
+  
       if (response.ok) {
-        console.log('Message sent successfully');
+        const responseData = await response.json();
+        console.log('Message sent successfully. Response:', responseData);
       } else {
         console.error('Failed to send message');
       }
@@ -72,6 +78,7 @@ const ChatScreen = ({ clientId, socketId }) => {
       console.error('Error sending message:', error);
     }
   };
+   
 
   return (
     <View style={{ flex: 1 }}>

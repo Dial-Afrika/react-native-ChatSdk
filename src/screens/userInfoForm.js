@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
-import { withNavigation } from 'react-navigation';
+import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
+
 
 
 const apiBaseUrl = 'https://apiprod.dialafrika.com/organisation/';
@@ -13,6 +14,23 @@ const UserInfoForm = ({ navigation, orgId, socketId, onUserDataSaved }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [initialMessage, setInitialMessage] = useState('');
 
+  useEffect(() => {
+    const checkUserData = async () => {
+      const name = await AsyncStorage.getItem('name');
+      const email = await AsyncStorage.getItem('email');
+      const phoneNumber = await AsyncStorage.getItem('phoneNumber');
+      const clientId = await AsyncStorage.getItem('clientId');
+  
+      if (name && email && phoneNumber && clientId) {
+        // User data is available, navigate to ChatScreen
+        navigation.navigate('ChatScreen');
+      }
+    };
+  
+    checkUserData();
+  }, [navigation]);
+  
+  
   const handleSave = async () => {
     // Prepare the registration data
     const registrationData = {
@@ -114,4 +132,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default withNavigation(UserInfoForm); 
+export default UserInfoForm; 
