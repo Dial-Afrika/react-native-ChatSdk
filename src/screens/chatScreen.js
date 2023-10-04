@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import io from 'socket.io-client';
 
 const chatBaseUrl = 'https://chatdesk-prod.dialafrika.com/mobilechat/';
@@ -51,15 +51,15 @@ const ChatScreen = ({ clientId, socketId }) => {
         console.error('Client ID is not available');
         return;
       }
-  
+
       const messagePayload = {
         clientId: clientId,
         ticketMessage: message,
         socketId: socketId,
       };
-  
+
       console.log('Sending message payload:', messagePayload); // Log the message payload
-  
+
       const response = await fetch(`${chatBaseUrl}${socketId}/sendMessage`, {
         method: 'POST',
         headers: {
@@ -67,10 +67,12 @@ const ChatScreen = ({ clientId, socketId }) => {
         },
         body: JSON.stringify(messagePayload),
       });
-  
+
       if (response.ok) {
         const responseData = await response.json();
         console.log('Message sent successfully. Response:', responseData);
+        // Clear the input field after sending the message
+        setMessage('');
       } else {
         console.error('Failed to send message');
       }
@@ -78,33 +80,98 @@ const ChatScreen = ({ clientId, socketId }) => {
       console.error('Error sending message:', error);
     }
   };
-   
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* Display the chat messages */}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <FlatList
         data={messages}
         keyExtractor={(item) => item._id.toString()}
         renderItem={({ item }) => (
-          <View>
-            <Text>{item.user.name}</Text>
-            <Text>{item.text}</Text>
+          <View
+            style={[
+              styles.messageContainer,
+              item.user._id === clientId ? styles.userMessage : styles.agentMessage,
+            ]}
+          >
+            <Text style={styles.messageText}>{item.text}</Text>
           </View>
         )}
+        contentContainerStyle={styles.messagesContainer}
       />
-
-      {/* Input field and send button */}
-      <TextInput
-        value={message}
-        onChangeText={(text) => setMessage(text)}
-        placeholder="Type your message..."
-      />
-      <TouchableOpacity onPress={sendMessage}>
-        <Text>Send</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          value={message}
+          onChangeText={(text) => setMessage(text)}
+          placeholder="Type your message..."
+        />
+        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+          <Text style={styles.sendButtonText}>Send</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  messagesContainer: {
+    paddingVertical: 10,
+  },
+  messageContainer: {
+    alignSelf: 'flex-start',
+    maxWidth: '70%',
+    borderRadius: 8,
+    marginVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  userMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#007BFF',
+    color: '#FFFFFF',
+  },
+  agentMessage: {
+    backgroundColor: '#FFFFFF',
+    color: '#000000',
+  },
+  messageText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: '#FFFFFF',
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    backgroundColor: '#EFEFEF',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    marginRight: 10,
+  },
+  sendButton: {
+    width: 60,
+    height: 40,
+    backgroundColor: '#007BFF',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+});
 
 export default ChatScreen;
