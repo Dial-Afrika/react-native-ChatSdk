@@ -1,57 +1,78 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import io from 'socket.io-client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const chatBaseUrl = 'https://chatdesk-prod.dialafrika.com/mobilechat/';
 
-const ChatScreen = ({ clientId, socketId }) => {
+const ChatScreen = ({ socketId }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [ticketId, setTicketId] = useState(null); // State for storing ticketId
+  const [clientId, setClientId] = useState(null); // State for storing clientId
+  const [loadingClientId, setLoadingClientId] = useState(true); // Loading state for clientId
 
   useEffect(() => {
-    const socket = io(`${chatBaseUrl}${socketId}/process`);
-
-    socket.on('connect', () => {
-      console.log('Connected to server');
-    });
-
-    socket.on('message_from_agent', (data) => {
-      // Handle incoming messages from the agent
-      const newMessage = {
-        _id: data.messageId,
-        text: data.message,
-        createdAt: new Date(data.timestamp),
-        user: {
-          _id: data.senderId,
-          name: data.senderName,
-        },
-      };
-
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
-    });
-
-    // Initialize a new chat session and capture the ticketId
-    socket.emit('initiate_chat', (data) => {
-      const receivedTicketId = data.ticketId;
-      setTicketId(receivedTicketId);
-      console.log('Ticket ID:', receivedTicketId); // Log the captured ticketId
-    });
-
-    return () => {
-      // Clean up socket connection when unmounting
-      socket.disconnect();
+    const fetchClientId = async () => {
+      try {
+        const storedClientId = await AsyncStorage.getItem('clientId');
+        if (storedClientId) {
+          setClientId(storedClientId);
+        }
+      } catch (error) {
+        console.error('Error fetching clientId:', error);
+      } finally {
+        setLoadingClientId(false);
+      }
     };
-  }, [socketId]);
+
+    fetchClientId();
+  }, []);
+
+  useEffect(() => {
+    if (!loadingClientId) {
+      const socket = io(`${chatBaseUrl}${socketId}/process`);
+
+      socket.on('connect', () => {
+        console.log('Connected to server');
+      });
+
+      socket.on('message_from_agent', (data) => {
+        // Handle incoming messages from the agent
+        const newMessage = {
+          _id: data.messageId,
+          text: data.message,
+          createdAt: new Date(data.timestamp),
+          user: {
+            _id: data.senderId,
+            name: data.senderName,
+          },
+        };
+
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      });
+
+      // Initialize a new chat session and capture the ticketId
+      socket.emit('initiate_chat', (data) => {
+        const receivedTicketId = data.ticketId;
+        setTicketId(receivedTicketId);
+        console.log('Ticket ID:', receivedTicketId); // Log the captured ticketId
+      });
+
+      return () => {
+        // Clean up socket connection when unmounting
+        socket.disconnect();
+      };
+    }
+  }, [socketId, loadingClientId]);
 
   const sendMessage = async () => {
-    try {
-      // Check if clientId is available
-      if (!clientId) {
-        console.error('Client ID is not available');
-        return;
-      }
+    if (!clientId) {
+      console.error('Client ID is not available');
+      return;
+    }
 
+    try {
       const messagePayload = {
         clientId: clientId,
         ticketMessage: message,
@@ -71,8 +92,6 @@ const ChatScreen = ({ clientId, socketId }) => {
       if (response.ok) {
         const responseData = await response.json();
         console.log('Message sent successfully. Response:', responseData);
-        // Clear the input field after sending the message
-        setMessage('');
       } else {
         console.error('Failed to send message');
       }
@@ -81,38 +100,40 @@ const ChatScreen = ({ clientId, socketId }) => {
     }
   };
 
+  if (loadingClientId) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View style={styles.container}>
+      {/* Display the chat messages */}
       <FlatList
         data={messages}
         keyExtractor={(item) => item._id.toString()}
         renderItem={({ item }) => (
-          <View
-            style={[
-              styles.messageContainer,
-              item.user._id === clientId ? styles.userMessage : styles.agentMessage,
-            ]}
-          >
+          <View style={item.user._id === clientId ? styles.userMessageContainer : styles.agentMessageContainer}>
             <Text style={styles.messageText}>{item.text}</Text>
           </View>
         )}
-        contentContainerStyle={styles.messagesContainer}
       />
+
+      {/* Input field and send button */}
       <View style={styles.inputContainer}>
         <TextInput
-          style={styles.input}
           value={message}
           onChangeText={(text) => setMessage(text)}
           placeholder="Type your message..."
+          style={styles.input}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+        <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -121,29 +142,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  messagesContainer: {
-    paddingVertical: 10,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  messageContainer: {
-    alignSelf: 'flex-start',
+  userMessageContainer: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#007BFF',
     maxWidth: '70%',
     borderRadius: 8,
     marginVertical: 5,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  userMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007BFF',
-    color: '#FFFFFF',
-  },
-  agentMessage: {
+  agentMessageContainer: {
+    alignSelf: 'flex-start',
     backgroundColor: '#FFFFFF',
-    color: '#000000',
+    maxWidth: '70%',
+    borderRadius: 8,
+    marginVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   messageText: {
     fontSize: 16,
-    color: '#000000',
+    color: '#FFFFFF',
   },
   inputContainer: {
     flexDirection: 'row',

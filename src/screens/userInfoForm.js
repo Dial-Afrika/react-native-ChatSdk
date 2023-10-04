@@ -3,8 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, SafeAreaView, StyleSheet } fro
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
 
-
-
 const apiBaseUrl = 'https://apiprod.dialafrika.com/organisation/';
 const registrationUrl = 'https://chatdesk-prod.dialafrika.com/mobilechat/initialize-livechat/without-client/';
 
@@ -16,21 +14,17 @@ const UserInfoForm = ({ navigation, orgId, socketId, onUserDataSaved }) => {
 
   useEffect(() => {
     const checkUserData = async () => {
-      const name = await AsyncStorage.getItem('name');
-      const email = await AsyncStorage.getItem('email');
-      const phoneNumber = await AsyncStorage.getItem('phoneNumber');
-      const clientId = await AsyncStorage.getItem('clientId');
-  
-      if (name && email && phoneNumber && clientId) {
-        // User data is available, navigate to ChatScreen
+      const clientId = await AsyncStorage.getItem('clientId'); // Get the client ID
+
+      if (clientId) {
+        // Client ID is available, navigate to ChatScreen
         navigation.navigate('ChatScreen');
       }
     };
-  
+
     checkUserData();
   }, [navigation]);
-  
-  
+
   const handleSave = async () => {
     // Prepare the registration data
     const registrationData = {
@@ -56,16 +50,16 @@ const UserInfoForm = ({ navigation, orgId, socketId, onUserDataSaved }) => {
         const clientId = responseData.data.clientId;
         console.log('Registration response:', responseData);
 
+        // Store the client ID in AsyncStorage
         await AsyncStorage.setItem('clientId', clientId);
         onUserDataSaved(); // Call the onUserDataSaved function here
+        navigation.navigate('ChatScreen'); // Navigate to ChatScreen after successful registration
       } else {
         console.error('Registration failed');
       }
     } catch (error) {
       console.error('Error during registration:', error);
     }
-
-    navigation.navigate('ChatScreen'); 
   };
 
   return (
@@ -132,4 +126,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UserInfoForm; 
+export default UserInfoForm;
