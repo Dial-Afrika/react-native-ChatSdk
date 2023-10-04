@@ -93,6 +93,22 @@ const ChatScreen = ({ socketId, orgId }) => {
       if (response.ok) {
         const responseData = await response.json();
         console.log('Message sent successfully. Response:', responseData);
+  
+        // Clear the input field
+        setMessage('');
+  
+        // Add the sent message to the messages state
+        const newMessage = {
+          _id: responseData.messageId, // Use the actual message ID if available
+          text: message, // Use the message content
+          createdAt: new Date(), // Use the current date/time
+          user: {
+            _id: clientId,
+            name: 'You', // Set the sender's name (you can customize this)
+          },
+        };
+  
+        setMessages([...messages, newMessage]);
       } else {
         console.error('Failed to send message');
       }
@@ -114,13 +130,14 @@ const ChatScreen = ({ socketId, orgId }) => {
       {/* Display the chat messages */}
       <FlatList
         data={messages}
-        keyExtractor={(item) => item._id.toString()}
+        keyExtractor={(item) => (item && item._id ? item._id.toString() : '')}
         renderItem={({ item }) => (
           <View style={item.user._id === clientId ? styles.userMessageContainer : styles.agentMessageContainer}>
             <Text style={styles.messageText}>{item.text}</Text>
           </View>
         )}
       />
+
 
       {/* Input field and send button */}
       <View style={styles.inputContainer}>
