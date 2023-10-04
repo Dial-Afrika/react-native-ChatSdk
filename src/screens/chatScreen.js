@@ -3,9 +3,10 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'r
 import io from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const chatBaseUrl = 'https://chatdesk-prod.dialafrika.com/mobilechat/';
+const chatBaseUrl = `https://chatdesk-prod.dialafrika.com/webchat/initialize-livechat/with-client/`;
 
-const ChatScreen = ({ socketId }) => {
+
+const ChatScreen = ({ socketId, orgId }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [ticketId, setTicketId] = useState(null); // State for storing ticketId
@@ -81,7 +82,7 @@ const ChatScreen = ({ socketId }) => {
 
       console.log('Sending message payload:', messagePayload); // Log the message payload
 
-      const response = await fetch(`${chatBaseUrl}${socketId}/sendMessage`, {
+      const response = await fetch(`${chatBaseUrl}?organizationId=${orgId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

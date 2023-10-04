@@ -107,7 +107,7 @@ export default function App() {
         </Stack.Screen>
         <Stack.Screen name="ChatScreen">
           {props => (
-            <ChatScreen {...props} clientId={clientId} socketId={socketId} />
+            <ChatScreen {...props} clientId={clientId} socketId={socketId} orgId={orgId} />
           )}
         </Stack.Screen>
         <Stack.Screen
